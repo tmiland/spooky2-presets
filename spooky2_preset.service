@@ -1,0 +1,10 @@
+[Unit]
+Description=Script to make generator group presets
+Wants=spooky2_preset.timer
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash $HOME/.scripts/spooky2_preset.sh -b
+
+[Install]
+WantedBy=multi-user.target
