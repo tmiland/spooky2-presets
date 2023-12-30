@@ -68,6 +68,44 @@ Usage: spooky2_preset [option]
   --restore-backup    | -rb           restore backup presets
 ```
 
+### Install backup option with systemd
+
+`/etc/systemd/system/spooky2_preset.service`
+```bash
+[Unit]
+Description=Script to make generator group presets
+Requires=spooky2_preset.service
+
+[Timer]
+Unit=spooky2_preset.service
+OnCalendar=daily
+AccuracySec=1d
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+`/etc/systemd/system/spooky2_preset.timer`
+```bash
+[Unit]
+Description=Script to make generator group presets
+Wants=spooky2_preset.timer
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash $HOME/.scripts/spooky2_preset.sh -b
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+systemctl enable spooky2_preset.{service,timer} && \
+systemctl start spooky2_preset.{service,timer} && \
+systemctl status spooky2_preset.{service,timer}
+```
+
 #### Disclaimer 
 
 *** ***Use at own risk*** ***
