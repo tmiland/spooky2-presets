@@ -18,6 +18,33 @@
  ```bash
   ln -sfn ~/.scripts/spooky2_preset.sh ~/.local/bin/spooky2_preset
  ```
+
+Create credentials file:
+
+```bash
+touch /root/.spooky2_credentials
+```
+with content:
+```bash
+username=YOURUSER
+password=YOURPASSWORD
+```
+Give permissions:
+```bash
+sudo chmod 400 /root/.spooky2_credentials
+```
+Mount spooky2 folder (**Change username**):
+
+```bash
+# Mount Spooky2 smb disk on boot
+//192.168.1.100/spooky2 /media/spooky2 cifs rw,user=YOURUSER,uid=1000,gid=1000,iocharset=utf8,suid,credentials=/root/.spooky2_credentials,file_mode=0664,dir_mode=0777 0 0
+```
+
+Change to mounted spooky2 network share in script:
+```bash
+folder=/media/spooky2
+```
+
 Forders that will be created:
 
 ```bash
@@ -25,7 +52,7 @@ backups=$HOME/.spooky2_backups
 presets=$HOME/.spooky2_presets
 ```
 
-Change to the amount of gens you need (range E.g: (1..4 or 4..8)):
+Change to the amount of gens you need (range E.g: (1..4 or 4..8)) in script:
 ```bash
 generators=( CH{1..8}.txt )
 ```
@@ -33,7 +60,7 @@ generators=( CH{1..8}.txt )
 ## Usage
 
 ```bash
-Usage: [option]
+Usage: spooky2_preset [option]
 
   --create-preset     | -cp           create preset
   --use-preset        | -up           use preset
