@@ -1,0 +1,12 @@
+[Unit]
+Description=Script to make generator group presets
+Requires=spooky2_preset.service
+
+[Timer]
+Unit=spooky2_preset.service
+OnCalendar=daily
+AccuracySec=1d
+Persistent=true
+
+[Install]
+WantedBy=timers.target
