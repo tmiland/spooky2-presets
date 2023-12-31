@@ -6,6 +6,8 @@
  - Takes dated backups (can be set up as a cron job)
  - Option to restore from backups
 
+![spooky2-presets](https://github.com/tmiland/spooky2-presets/blob/main/img/spooky2-presets.png?raw=true)
+
  ### Installation
 
  Download script
