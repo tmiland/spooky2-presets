@@ -37,9 +37,18 @@ sudo chmod 400 /root/.spooky2_credentials
 ```
 Mount spooky2 folder (**Change username**):
 
+`sudo mkdir /media/spooky2 && sudo nano /etc/fstab`
 ```bash
 # Mount Spooky2 smb disk on boot
 //192.168.1.100/spooky2 /media/spooky2 cifs -o credentials=/root/.spooky2_credentials,uid=1000,gid=1000,forceuid,forcegid
+```
+Mount disk
+```bash
+mount -a
+```
+To unmount
+```bash
+umount -l /media/spooky2
 ```
 
 Change to mounted spooky2 network share in script:
