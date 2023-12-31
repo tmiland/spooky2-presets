@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2030,SC2031,SC2015,SC2221,SC2222,SC2059
+# shellcheck disable=SC2030,SC2031,SC2015,SC2221,SC2222,SC2059,SC2206
 
 ## Author: Tommy Miland (@tmiland) - Copyright (c) 2023
 
@@ -141,7 +141,7 @@ restore_backup_presets() {
 
 use_preset() {
   presets=$(ls "$presets")
-  preset=("$presets")
+  preset=($presets)
 
   # Credit: https://stackoverflow.com/a/23953375
   menu() {
