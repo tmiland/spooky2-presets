@@ -39,7 +39,7 @@ Mount spooky2 folder (**Change username**):
 
 ```bash
 # Mount Spooky2 smb disk on boot
-//192.168.1.100/spooky2 /media/spooky2 cifs rw,user=YOURUSER,uid=1000,gid=1000,iocharset=utf8,suid,credentials=/root/.spooky2_credentials,file_mode=0664,dir_mode=0777 0 0
+//192.168.1.100/spooky2 /media/spooky2 cifs -o credentials=/root/.spooky2_credentials,uid=1000,gid=1000,forceuid,forcegid
 ```
 
 Change to mounted spooky2 network share in script:
