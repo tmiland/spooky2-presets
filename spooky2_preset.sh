@@ -43,12 +43,25 @@
 # set -o pipefail
 # set -o nounset
 # set -o xtrace
+if [ ! -f .config ]; then
+  . .config
+else
 folder=/media/spooky2
 files=$folder/Data
 generators=( CH{1..8}.txt )
 backups=$HOME/.spooky2_backups
 presets=$HOME/.spooky2_presets
 preset=$presets/"$2"
+win_host=IP
+win_user=USER
+fi
+
+reboot() {
+  if ! dpkg -s samba-common >/dev/null 2>&1; then
+    sudo apt-get install samba-common
+  fi
+    net rpc shutdown -r -I "$win_host" -U "$win_user"
+}
 
 create_preset() {
   if [[ ! -d "$preset" ]]; then
@@ -99,7 +112,7 @@ backup_presets() {
 
 restore_backup_presets() {
   backups=$(ls "$backups")
-  preset=("$backups")
+  preset=($backups)
   # Credit: https://stackoverflow.com/a/23953375
   menu() {
     clear
@@ -140,46 +153,45 @@ restore_backup_presets() {
 }
 
 use_preset() {
-  presets=$(ls "$presets")
-  preset=($presets)
+  
+  presets_array=$(ls "$presets")
+  dirs=($presets_array)
 
-  # Credit: https://stackoverflow.com/a/23953375
-  menu() {
-    clear
-    echo "Avaliable presets:"
-    for i in "${!preset[@]}"; do
-      printf "%3d%s) %s\n" $((i+1)) "${choices[i]:- }" "${preset[i]}"
-    done
-    [[ "$msg" ]] && echo "$msg"; :
-  }
-
-  prompt="Check an option (again to uncheck, ENTER when done): "
-  while menu && read -rp "$prompt" num && [[ "$num" ]]; do
-    [[ "$num" != *[![:digit:]]* ]] && (( num > 0 && num <= ${#preset[@]} )) || {
-      msg="Invalid option: $num"; continue
-    }
-    ((num--)); msg="${preset[num]} was ${choices[num]:+un}checked"
-    [[ "${choices[num]}" ]] && choices[num]="" || choices[num]="[+]"
-  done
-
-  printf "You selected"; msg=" nothing"
-  if ! [[ $msg == "nothing" ]]; then
-    echo "$msg..."
-    exit
-  fi
-  for i in "${!preset[@]}"; do
-    [[ "${choices[i]}" ]] && { printf " %s" "${preset[i]}"; msg=""; }
-  done
-  echo "$msg"
+  read -rp "$(
+          f=0
+          # shellcheck disable=SC2068
+          for d in ${dirs[@]} ; do
+                  echo "$((++f)): $d"
+          done
+  
+          echo -ne "Please select a directory > "
+  )" selection
+  
+  selected_dir="${dirs[$((selection-1))]}"
+  
+  echo "You selected $selected_dir"
+  # Create a backup before restoring files
+  backup_presets
   for g in "${generators[@]}"; do
-    find "$files" -type f -name "$g" -print0 | while read -r -d '' file; do
-      # Create a backup before restoring files
-      backup_presets
+    find "$presets/$selected_dir" -type f -name "$g" -print0 | while read -r -d '' file; do
       # Restore files
-      cp -rp "$presets/$msg$g" "$files/$g"
+      cp -rp "$presets/$selected_dir/$g" "$files/$g"
     done
   done
-  echo "Go to Utils > Rescan devices to use as preset for all generators"
+  echo ""
+  read -rp "Do you want to reboot the remote computer? [y/n] " reboot
+  echo ""
+  case $reboot in
+    [Yy]* )
+      reboot
+      echo "rebooting..."
+      ;;
+    [Nn]* )
+      exit 1
+      ;;
+    * ) echo "Enter Y, N or Q, please." ;;
+  esac
+  echo "Go to Utils > Rescan devices to use channel presets"
 }
 
 usage() {
