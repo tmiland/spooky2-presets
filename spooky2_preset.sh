@@ -43,9 +43,6 @@
 # set -o pipefail
 # set -o nounset
 # set -o xtrace
-if [ ! -f .config ]; then
-  . .config
-else
 folder=/media/spooky2
 files=$folder/Data
 generators=( CH{1..8}.txt )
@@ -54,7 +51,6 @@ presets=$HOME/.spooky2_presets
 preset=$presets/"$2"
 win_host=IP
 win_user=USER
-fi
 
 reboot() {
   if ! dpkg -s samba-common >/dev/null 2>&1; then
@@ -80,6 +76,7 @@ create_preset() {
       * ) echo "Enter Y, N or Q, please." ;;
     esac
   fi
+
   for g in "${generators[@]}"; do
     find "$files" -type f -name "$g" -print0 | while read -r -d '' file; do
       cp -rp "$file" "$preset/$g"
@@ -111,37 +108,27 @@ backup_presets() {
 }
 
 restore_backup_presets() {
-  backups=$(ls "$backups")
-  preset=($backups)
-  # Credit: https://stackoverflow.com/a/23953375
-  menu() {
-    clear
-    echo "Avaliable backup presets:"
-    for i in "${!preset[@]}"; do
-      printf "%3d%s) %s\n" $((i+1)) "${choices[i]:- }" "${preset[i]}"
-    done
-    [[ "$msg" ]] && echo "$msg"; :
-  }
+  presets_array=$(ls "$backups")
+  dirs=($presets_array)
 
-  prompt="Check an option (again to uncheck, ENTER when done): "
-  while menu && read -rp "$prompt" num && [[ "$num" ]]; do
-    [[ "$num" != *[![:digit:]]* ]] && (( num > 0 && num <= ${#preset[@]} )) || {
-      msg="Invalid option: $num"; continue
-    }
-    ((num--)); msg="${preset[num]} was ${choices[num]:+un}checked"
-    [[ "${choices[num]}" ]] && choices[num]="" || choices[num]="[+]"
-  done
+  read -rp "$(
+          f=0
+          # shellcheck disable=SC2068
+          for d in ${dirs[@]} ; do
+                  echo "$((++f)): $d"
+          done
+  
+          echo -ne "Please select a directory > "
+  )" selection
+  
+  selected_dir="${dirs[$((selection-1))]}"
+  
+  echo "You selected $selected_dir"
 
-  printf "You selected"; msg=" nothing"
-  for i in "${!preset[@]}"; do
-    [[ "${choices[i]}" ]] && { printf " %s" "${preset[i]}"; msg=""; }
-  done
-  echo "$msg"
   for g in "${generators[@]}"; do
-    find "$files" -type f -name "$g" -print0 | while read -r -d '' file; do
+    find "$backups/$selected_dir" -type f -name "$g" -print0 | while read -r -d '' file; do
       # Restore files
-      cp -rp "$backups/$msg$g" "$files/$g"
-      echo ""
+      cp -rp "$backups/$selected_dir/$g" "$files/$g"
     done
   done
   echo ""
