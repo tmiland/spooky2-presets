@@ -185,7 +185,7 @@ restore_backup_presets() {
   for g in "${backup_generators[@]}"; do
     find "$backups/$time_selected_dir" -type f -name "$g" -print0 | while read -r -d '' file; do
       # Restore files
-      echo "$backups/$time_selected_dir/$g" "$files/$g"
+      cp -rp "$backups/$time_selected_dir/$g" "$files/$g"
     done
   done
   echo ""
