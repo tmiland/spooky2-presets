@@ -43,20 +43,26 @@
 # set -o pipefail
 # set -o nounset
 # set -o xtrace
+year=$(date +"%4Y")
+month=$(date +"%m")
+day=$(date +"%d")
+time=$(date +"%H-%M-%S")
+
 folder=/media/spooky2
 files=$folder/Data
-generators=( CH{1..8}.txt )
-backups=$HOME/.spooky2_backups
+generators=( CH{1..5}.txt )
+backup_generators=( CH{1..8}.txt )
+backups="$folder/Preset Collections/User/Backup"
 presets=$HOME/.spooky2_presets
 preset=$presets/"$2"
-win_host=IP
-win_user=USER
+win_host=192.168.1.16
+win_user=Reserve
 
 reboot() {
   if ! dpkg -s samba-common >/dev/null 2>&1; then
     sudo apt-get install samba-common
   fi
-    net rpc shutdown -r -I "$win_host" -U "$win_user"
+  net rpc shutdown -r -I "$win_host" -U "$win_user"
 }
 
 create_preset() {
@@ -90,45 +96,96 @@ create_preset() {
 }
 
 backup_presets() {
-  date=$(date +"%d.%m.%4Y")
-  for g in "${generators[@]}"; do
+  bfolder="$year/$month/$day/$time"
+  for g in "${backup_generators[@]}"; do
     find "$files" -type f -name "$g" -print0 | while read -r -d '' file; do
       # Create a backup
-      if [ ! -d "$backups/$date" ]; then
-        mkdir -p "$backups/$date"
+      if [ ! -d "$backups/$bfolder" ]; then
+        mkdir -p "$backups/$bfolder"
       fi
-      cp -rp "$files/$g" "$backups/$date/$g"
+      cp -rp "$files/$g" "$backups/$bfolder/$g"
     done
   done
   echo ""
   echo "Channel presets successfully backed up to:"
   echo ""
-  echo "$backups/$date"
+  echo "$backups/$bfolder"
   echo ""
 }
 
 restore_backup_presets() {
   presets_array=$(ls "$backups")
-  dirs=($presets_array)
+  year_dirs=($presets_array)
 
   read -rp "$(
           f=0
           # shellcheck disable=SC2068
-          for d in ${dirs[@]} ; do
+          for d in ${year_dirs[@]} ; do
                   echo "$((++f)): $d"
           done
-  
+
           echo -ne "Please select a directory > "
   )" selection
-  
-  selected_dir="${dirs[$((selection-1))]}"
-  
-  echo "You selected $selected_dir"
 
-  for g in "${generators[@]}"; do
-    find "$backups/$selected_dir" -type f -name "$g" -print0 | while read -r -d '' file; do
+  year_selected_dir="${year_dirs[$((selection-1))]}"
+
+  echo "You selected $year_selected_dir"
+  #############################
+  month_presets_array=$(ls "$backups/$year_selected_dir")
+  month_dirs=($month_presets_array)
+
+  read -rp "$(
+          f=0
+          # shellcheck disable=SC2068
+          for d in ${month_dirs[@]} ; do
+                  echo "$((++f)): $d"
+          done
+
+          echo -ne "Please select a directory > "
+  )" selection
+
+  month_selected_dir="$year_selected_dir/${month_dirs[$((selection-1))]}"
+
+  echo "You selected $month_selected_dir"
+  #############################
+  day_presets_array=$(ls "$backups/$month_selected_dir")
+  day_dirs=($day_presets_array)
+
+  read -rp "$(
+        f=0
+        # shellcheck disable=SC2068
+        for d in ${day_dirs[@]} ; do
+                echo "$((++f)): $d"
+        done
+
+        echo -ne "Please select a directory > "
+  )" selection
+
+  day_selected_dir="$month_selected_dir/${day_dirs[$((selection-1))]}"
+
+  echo "You selected $day_selected_dir"
+  #############################
+  time_presets_array=$(ls "$backups/$day_selected_dir")
+  time_dirs=($time_presets_array)
+
+  read -rp "$(
+          f=0
+          # shellcheck disable=SC2068
+          for d in ${time_dirs[@]} ; do
+                  echo "$((++f)): $d"
+          done
+
+          echo -ne "Please select a directory > "
+  )" selection
+
+  time_selected_dir="$day_selected_dir/${time_dirs[$((selection-1))]}"
+
+  echo "You selected $time_selected_dir"
+  #############################
+  for g in "${backup_generators[@]}"; do
+    find "$backups/$time_selected_dir" -type f -name "$g" -print0 | while read -r -d '' file; do
       # Restore files
-      cp -rp "$backups/$selected_dir/$g" "$files/$g"
+      echo "$backups/$time_selected_dir/$g" "$files/$g"
     done
   done
   echo ""
@@ -140,7 +197,7 @@ restore_backup_presets() {
 }
 
 use_preset() {
-  
+
   presets_array=$(ls "$presets")
   dirs=($presets_array)
 
@@ -150,12 +207,12 @@ use_preset() {
           for d in ${dirs[@]} ; do
                   echo "$((++f)): $d"
           done
-  
+
           echo -ne "Please select a directory > "
   )" selection
-  
+
   selected_dir="${dirs[$((selection-1))]}"
-  
+
   echo "You selected $selected_dir"
   # Create a backup before restoring files
   backup_presets
