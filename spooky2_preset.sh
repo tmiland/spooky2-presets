@@ -113,6 +113,26 @@ backup_presets() {
   echo ""
 }
 
+cron_backup_presets() {
+  backups_array=$(ls "$backups/$year/$month/$day")
+  bfolder="$backups_array"
+  for g in "${backup_generators[@]}"; do
+
+    # if cmp --silent -- "$files/$g" "$bfolder/$g"; then
+    #   echo "$files/$g" is equal to "$backups/$bfolder/$g"
+    # else
+    #   echo "$files/$g" is older than "$backups/$bfolder/$g"
+    # fi
+
+    if [[ "$files/$g" -nt "$backups/$bfolder/$g" ]]; then
+      #backup_presets
+      echo "$files/$g" is newer to "$backups/$bfolder/$g"
+      # else
+      #   echo "$files/$g" is older than "$backups/$bfolder/$g"
+    fi
+  done
+}
+
 restore_backup_presets() {
   presets_array=$(ls "$backups")
   year_dirs=($presets_array)
@@ -268,6 +288,10 @@ while [[ $# -gt 0 ]]; do
     --backup | -b)
       shift
       backup_presets
+      ;;
+    --cron-backup | -cb)
+      shift
+      cron_backup_presets
       ;;
     --restore-backup | -rb)
       shift
