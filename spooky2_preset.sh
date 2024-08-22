@@ -49,20 +49,71 @@ day=$(date +"%d")
 time=$(date +"%H-%M-%S")
 
 folder=/media/spooky2
+folder2=/media/spooky2-zwift-pc
+folder3=/media/spooky2-laptop-pc
 files=$folder/Data
-generators=( CH{1..5}.txt )
-backup_generators=( CH{1..8}.txt )
-backups="$folder/Preset Collections/User/Backup"
-presets=$HOME/.spooky2_presets
+files2=$folder2/Data
+files3=$folder3/Data
+preset_collections="$folder/Preset Collections/User"
+preset_collections2="$folder2/Preset Collections/User"
+preset_collections3="$folder3/Preset Collections/User"
+
+scandata="$folder/ScanData"
+scandata2="$folder2/ScanData"
+scandata3="$folder3/ScanData"
+
+custom_databases="$folder/Custom Databases"
+custom_databases2="$folder2/Custom Databases"
+custom_databases3="$folder3/Custom Databases"
+
+generators=( CH{1..6}.txt )
+backup_generators=( CH{1..9}.txt )
+backup_generators2=( CH{7..9}.txt )
+backups="$preset_collections/Backup"
+#backups2="$preset_collections2/Backup"
+reverse_lookup_folder="$preset_collections/Biofeedback/Reverse Lookup"
+reverse_lookup_folder2="$preset_collections2/Biofeedback/Reverse Lookup"
+reverse_lookup_folder3="$preset_collections3/Biofeedback/Reverse Lookup"
+presets=$backups/.spooky2_presets
 preset=$presets/"$2"
 win_host=192.168.1.16
 win_user=Reserve
+
+# Set backup2 on/off - default on
+BACKUP2=${BACKUP2:-off}
+
+# For renaming preset settings
+# files="/media/spooky2/Preset Collections/User"
+# presets=( *.txt )
+
+# for p in "${backup_generators[@]}"; do
+#   find "$files" -type f -name "$p" -print0 | while read -r -d '' file; do
+#     sed -i -e 's|"Auto_Resume=False"|"Auto_Resume=True"|g' "$file"
+#     sed -i -e 's|"Manual_Start=True"|"Manual_Start=False"|g' "$file"
+#   done
+# done
 
 reboot() {
   if ! dpkg -s samba-common >/dev/null 2>&1; then
     sudo apt-get install samba-common
   fi
   net rpc shutdown -r -I "$win_host" -U "$win_user"
+}
+
+create_reverse_lookup_folder() {
+  rlf="$reverse_lookup_folder/$year/$month/$day"
+  if [ ! -d "$rlf" ]; then
+    mkdir -p "$rlf"
+  fi
+  if [[ -d $files2 ]]; then
+    rlf2="$reverse_lookup_folder2/$year/$month/$day"
+    if [ ! -d "$rlf2" ]; then
+      mkdir -p "$rlf2"
+    fi
+  else
+    echo "Location: $files is not available..."
+    exit
+  fi
 }
 
 create_preset() {
@@ -95,17 +146,109 @@ create_preset() {
   echo ""
 }
 
-backup_presets() {
-  bfolder="$year/$month/$day/$time"
-  for g in "${backup_generators[@]}"; do
-    find "$files" -type f -name "$g" -print0 | while read -r -d '' file; do
-      # Create a backup
-      if [ ! -d "$backups/$bfolder" ]; then
-        mkdir -p "$backups/$bfolder"
-      fi
-      cp -rp "$files/$g" "$backups/$bfolder/$g"
-    done
+rsync_args=-aqhutPt
+
+channel_sync() {
+  # Sync CH7.txt from laptop-pc to main spooky2-pc
+  #rsync $rsync_args --include "CH7.txt" --exclude "*" "$files3"/ "$files"
+  cp -rp "$files3/CH7.txt" "$files/"
+  # Sync CH8.txt from laptop-pc to main spooky2-pc
+  #rsync $rsync_args --include "CH8.txt" --exclude "*" "$files3"/ "$files"
+  cp -rp "$files3/CH8.txt" "$files/"
+}
+
+scandata_sync() {
+  # Take not the folder A but all of its content and put it into folder B (with the slash)
+  # https://unix.stackexchange.com/a/203854
+  # Sync from main spooky2 pc to zwift-pc
+  rsync $rsync_args "$scandata/" "$scandata2"
+  # Sync from main spooky2 pc to laptop-pc
+  rsync $rsync_args "$scandata/" "$scandata3"
+  # Sync from zwift-pc to main spooky2 pc
+  rsync $rsync_args "$scandata2/" "$scandata"
+  # Sync from laptop-pc to main spooky2 pc
+  rsync $rsync_args "$scandata3/" "$scandata"
+  # Sync from laptop-pc to zwift-pc
+  rsync $rsync_args "$scandata3/" "$scandata2"
+}
+
+preset_collection_sync() {
+  # Take not the folder A but all of its content and put it into folder B (with the slash)
+  # https://unix.stackexchange.com/a/203854
+  # Sync from main spooky2 pc to zwift-pc
+  rsync $rsync_args "$preset_collections/" "$preset_collections2"
+  # Sync from main spooky2 pc to laptop-pc
+  rsync $rsync_args "$preset_collections/" "$preset_collections3"
+  # Sync from zwift-pc to main spooky2 pc
+  rsync $rsync_args "$preset_collections2/" "$preset_collections"
+  # Sync from laptop-pc to main spooky2 pc
+  rsync $rsync_args "$preset_collections3/" "$preset_collections"
+}
+
+custom_database_sync() {
+  # Sync from main spooky2 pc to zwift-pc
+  rsync $rsync_args --exclude={/backup/,/old/} "$custom_databases/" "$custom_databases2"
+  # Sync from main spooky2 pc to laptop-pc
+  rsync $rsync_args --exclude={/backup/,/old/} "$custom_databases/" "$custom_databases3"
+  # Sync Custom.csv from main spooky2 pc to laptop-pc
+  rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder"/ "$folder2"
+  # Sync Custom.csv from main spooky2 pc to zwift-pc
+  rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder"/ "$folder3"
+  # Sync Custom.csv from zwift-pc to main spooky2 pc
+  rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder2"/ "$folder"
+  # Sync Custom.csv from laptop-pc to main spooky2 pc
+  rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder3"/ "$folder"
+}
+
+sync() {
+  channel_sync
+  scandata_sync
+  preset_collection_sync
+  custom_database_sync
+}
+# interval="86400" # 24 hours
+# interval="3600" # 1 hour
+interval="60" # 1 minute
+interval_sync() {
+  while true
+  do
+    sync
+    echo "Sleeping $interval seconds till the next update..."
+    sleep $interval
   done
+}
+
+backup_presets() {
+  create_reverse_lookup_folder
+  bfolder="$year/$month/$day/$time"
+  if [[ -d $files ]]; then
+    for g in "${backup_generators[@]}"; do
+      find "$files" -type f -name "$g" -print0 | while read -r -d '' file; do
+        # Create a backup
+        if [ ! -d "$backups/$bfolder" ]; then
+          mkdir -p "$backups/$bfolder"
+        fi
+        cp -rp "$files/$g" "$backups/$bfolder/$g"
+      done
+    done
+  else
+    echo "Location: $files is not available..."
+    exit
+  fi
+  if [ "$BACKUP2" = "on" ]; then
+    if [[ -d $files2 ]]; then
+      for g in "${backup_generators2[@]}"; do
+        find "$files2" -type f -name "$g" -print0 | while read -r -d '' file; do
+          # Create a backup from files2 to files, then rsync from files back to files2
+          cp -rp "$files2/$g" "$backups/$bfolder/$g"
+          rsync -aq "$backups" "$preset_collections2"
+        done
+      done
+    else
+      echo "Location: $files2 is not available..."
+      exit
+    fi
+  fi
   echo ""
   echo "Channel presets successfully backed up to:"
   echo ""
@@ -265,6 +408,8 @@ usage() {
   printf "  --create-preset     | -cp           create preset\\n"
   printf "  --use-preset        | -up           use preset\\n"
   printf "  --backup            | -b            backup presets\\n"
+  printf "  --backup-sync       | -bs           backup and sync presets\\n"
+  printf "  --sync              | -s            run folder sync\\n"
   printf "  --restore-backup    | -rb           restore backup presets\\n"
   printf "\\n"
   echo
@@ -289,6 +434,26 @@ while [[ $# -gt 0 ]]; do
       shift
       backup_presets
       ;;
+    --backup-sync | -bs)
+      shift
+      echo "Running sync before backup..."
+      sync
+      echo "Done."
+      backup_presets
+      echo "Running sync after backup..."
+      sync
+      echo "Done."
+      ;;
+    --sync | -s)
+      shift
+      echo "Running sync..."
+      sync
+      echo "Done."
+      ;;
+    --interval-sync | -is)
+      shift
+      interval_sync
+      ;;
     --cron-backup | -cb)
       shift
       cron_backup_presets
@@ -298,7 +463,7 @@ while [[ $# -gt 0 ]]; do
       restore_backup_presets
       ;;
     -*|--*)
-      printf "Unrecognized option: $1\\n\\n"
+      printf "Unrecognized option: %s\\n\\n" "$1"
       usage
       exit 1
       ;;
