@@ -54,26 +54,37 @@ folder3=/media/spooky2-laptop-pc
 files=$folder/Data
 files2=$folder2/Data
 files3=$folder3/Data
-preset_collections="$folder/Preset Collections/User"
-preset_collections2="$folder2/Preset Collections/User"
-preset_collections3="$folder3/Preset Collections/User"
 
-scandata="$folder/ScanData"
-scandata2="$folder2/ScanData"
-scandata3="$folder3/ScanData"
+Preset_Collections_Folder="Preset Collections/User"
 
-custom_databases="$folder/Custom Databases"
-custom_databases2="$folder2/Custom Databases"
-custom_databases3="$folder3/Custom Databases"
+preset_collections="$folder/$Preset_Collections_Folder"
+preset_collections2="$folder2/$Preset_Collections_Folder"
+preset_collections3="$folder3/$Preset_Collections_Folder"
+
+ScanData=ScanData
+
+scandata="$folder/$ScanData"
+scandata2="$folder2/$ScanData"
+scandata3="$folder3/$ScanData"
+
+Custom_Databases_Folder="Custom Databases"
+
+custom_databases="$folder/$Custom_Databases_Folder"
+custom_databases2="$folder2/$Custom_Databases_Folder"
+custom_databases3="$folder3/$Custom_Databases_Folder"
 
 generators=( CH{1..6}.txt )
 backup_generators=( CH{1..9}.txt )
 backup_generators2=( CH{7..9}.txt )
 backups="$preset_collections/Backup"
 #backups2="$preset_collections2/Backup"
-reverse_lookup_folder="$preset_collections/Biofeedback/Reverse Lookup"
-reverse_lookup_folder2="$preset_collections2/Biofeedback/Reverse Lookup"
-reverse_lookup_folder3="$preset_collections3/Biofeedback/Reverse Lookup"
+
+Reverse_Lookup_Folder="Biofeedback/Reverse Lookup"
+
+reverse_lookup_folder="$preset_collections/$Reverse_Lookup_Folder"
+reverse_lookup_folder2="$preset_collections2/$Reverse_Lookup_Folder"
+reverse_lookup_folder3="$preset_collections3/$Reverse_Lookup_Folder"
+
 presets=$backups/.spooky2_presets
 preset=$presets/"$2"
 win_host=192.168.1.16
@@ -145,8 +156,8 @@ create_preset() {
   echo "location:" "$file" "$preset"
   echo ""
 }
-
-rsync_args=-aqhutPt
+# --delete-after
+rsync_args="-aqhutPt"
 
 channel_sync() {
   # Sync CH7.txt from laptop-pc to main spooky2-pc
