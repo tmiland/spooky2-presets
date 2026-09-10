@@ -48,30 +48,51 @@ month=$(date +"%m")
 day=$(date +"%d")
 time=$(date +"%H-%M-%S")
 
-folder=/media/spooky2
-folder2=/media/spooky2-zwift-pc
-folder3=/media/spooky2-laptop-pc
-files=$folder/Data
-files2=$folder2/Data
-files3=$folder3/Data
+enable_sync="yes"
+enable_sync2="yes"
+enable_sync3="yes"
 
 Preset_Collections_Folder="Preset Collections/User"
 
-preset_collections="$folder/$Preset_Collections_Folder"
-preset_collections2="$folder2/$Preset_Collections_Folder"
-preset_collections3="$folder3/$Preset_Collections_Folder"
+if [ $enable_sync == "yes" ]; then
+  folder=/media/spooky2
+  files=$folder/Data
+  preset_collections="$folder/$Preset_Collections_Folder"
+fi
+if [ $enable_sync2 == "yes" ]; then
+  folder2=/media/spooky2-zwift-pc
+  files2=$folder2/Data
+  preset_collections2="$folder2/$Preset_Collections_Folder"
+fi
+if [ $enable_sync3 == "yes" ]; then
+  folder3=/media/spooky2-laptop-pc
+  files3=$folder3/Data
+  preset_collections3="$folder3/$Preset_Collections_Folder"
+fi
 
 ScanData=ScanData
 
-scandata="$folder/$ScanData"
-scandata2="$folder2/$ScanData"
-scandata3="$folder3/$ScanData"
+if [ $enable_sync == "yes" ]; then
+  scandata="$folder/$ScanData"
+fi
+if [ $enable_sync2 == "yes" ]; then
+  scandata2="$folder2/$ScanData"
+fi
+if [ $enable_sync3 == "yes" ]; then
+  scandata3="$folder3/$ScanData"
+fi
 
 Custom_Databases_Folder="Custom Databases"
 
-custom_databases="$folder/$Custom_Databases_Folder"
-custom_databases2="$folder2/$Custom_Databases_Folder"
-custom_databases3="$folder3/$Custom_Databases_Folder"
+if [ $enable_sync == "yes" ]; then
+  custom_databases="$folder/$Custom_Databases_Folder"
+fi
+if [ $enable_sync2 == "yes" ]; then
+  custom_databases2="$folder2/$Custom_Databases_Folder"
+fi
+if [ $enable_sync3 == "yes" ]; then
+  custom_databases3="$folder3/$Custom_Databases_Folder"
+fi
 
 generators=( CH{1..6}.txt )
 backup_generators=( CH{1..9}.txt )
@@ -81,9 +102,15 @@ backups="$preset_collections/Backup"
 
 Reverse_Lookup_Folder="Biofeedback/Reverse Lookup"
 
-reverse_lookup_folder="$preset_collections/$Reverse_Lookup_Folder"
-reverse_lookup_folder2="$preset_collections2/$Reverse_Lookup_Folder"
-reverse_lookup_folder3="$preset_collections3/$Reverse_Lookup_Folder"
+if [ $enable_sync == "yes" ]; then
+  reverse_lookup_folder="$preset_collections/$Reverse_Lookup_Folder"
+fi
+if [ $enable_sync2 == "yes" ]; then
+  reverse_lookup_folder2="$preset_collections2/$Reverse_Lookup_Folder"
+fi
+if [ $enable_sync3 == "yes" ]; then
+  reverse_lookup_folder3="$preset_collections3/$Reverse_Lookup_Folder"
+fi
 
 presets=$backups/.spooky2_presets
 preset=$presets/"$2"
@@ -162,53 +189,85 @@ rsync_args="-aqhutPt"
 channel_sync() {
   # Sync CH7.txt from laptop-pc to main spooky2-pc
   #rsync $rsync_args --include "CH7.txt" --exclude "*" "$files3"/ "$files"
-  cp -rp "$files3/CH7.txt" "$files/"
-  # Sync CH8.txt from laptop-pc to main spooky2-pc
-  #rsync $rsync_args --include "CH8.txt" --exclude "*" "$files3"/ "$files"
-  cp -rp "$files3/CH8.txt" "$files/"
+  if [ $enable_sync3 == "yes" ]; then
+    cp -rpu "$files3/CH7.txt" "$files/"
+    # Sync CH8.txt from laptop-pc to main spooky2-pc
+    #rsync $rsync_args --include "CH8.txt" --exclude "*" "$files3"/ "$files"
+    cp -rpu "$files3/CH8.txt" "$files/"
+  fi
 }
 
 scandata_sync() {
   # Take not the folder A but all of its content and put it into folder B (with the slash)
   # https://unix.stackexchange.com/a/203854
-  # Sync from main spooky2 pc to zwift-pc
-  rsync $rsync_args "$scandata/" "$scandata2"
-  # Sync from main spooky2 pc to laptop-pc
-  rsync $rsync_args "$scandata/" "$scandata3"
-  # Sync from zwift-pc to main spooky2 pc
-  rsync $rsync_args "$scandata2/" "$scandata"
-  # Sync from laptop-pc to main spooky2 pc
-  rsync $rsync_args "$scandata3/" "$scandata"
-  # Sync from laptop-pc to zwift-pc
-  rsync $rsync_args "$scandata3/" "$scandata2"
+  if [ $enable_sync == "yes" ] && [ $enable_sync2 == "yes" ]; then
+    # Sync from main spooky2 pc to zwift-pc
+    rsync $rsync_args "$scandata/" "$scandata2"
+  fi
+  if [ $enable_sync == "yes" ] && [ $enable_sync3 == "yes" ]; then
+    # Sync from main spooky2 pc to laptop-pc
+    rsync $rsync_args "$scandata/" "$scandata3"
+  fi
+  if [ $enable_sync2 == "yes" ] && [ $enable_sync == "yes" ]; then
+    # Sync from zwift-pc to main spooky2 pc
+    rsync $rsync_args "$scandata2/" "$scandata"
+  fi
+  if [ $enable_sync == "yes" ] && [ "$scandata3" == "yes" ]; then
+    # Sync from laptop-pc to main spooky2 pc
+    rsync $rsync_args "$scandata3/" "$scandata"
+  fi
+  if [ $enable_sync3 == "yes" ] && [ "$scandata2" == "yes" ]; then
+    # Sync from laptop-pc to zwift-pc
+    rsync $rsync_args "$scandata3/" "$scandata2"
+  fi
 }
 
 preset_collection_sync() {
   # Take not the folder A but all of its content and put it into folder B (with the slash)
   # https://unix.stackexchange.com/a/203854
-  # Sync from main spooky2 pc to zwift-pc
-  rsync $rsync_args "$preset_collections/" "$preset_collections2"
-  # Sync from main spooky2 pc to laptop-pc
-  rsync $rsync_args "$preset_collections/" "$preset_collections3"
-  # Sync from zwift-pc to main spooky2 pc
-  rsync $rsync_args "$preset_collections2/" "$preset_collections"
-  # Sync from laptop-pc to main spooky2 pc
-  rsync $rsync_args "$preset_collections3/" "$preset_collections"
+  if [ $enable_sync == "yes" ] && [ $enable_sync2 == "yes" ]; then
+    # Sync from main spooky2 pc to zwift-pc
+    rsync $rsync_args "$preset_collections/" "$preset_collections2"
+  fi
+  if [ $enable_sync == "yes" ] && [ $enable_sync3 == "yes" ]; then
+    # Sync from main spooky2 pc to laptop-pc
+    rsync $rsync_args "$preset_collections/" "$preset_collections3"
+  fi
+  if [ $enable_sync2 == "yes" ] && [ $enable_sync == "yes" ]; then
+    # Sync from zwift-pc to main spooky2 pc
+    rsync $rsync_args "$preset_collections2/" "$preset_collections"
+  fi
+  if [ $enable_sync3 == "yes" ] && [ $enable_sync == "yes" ]; then
+    # Sync from laptop-pc to main spooky2 pc
+    rsync $rsync_args "$preset_collections3/" "$preset_collections"
+  fi
 }
 
 custom_database_sync() {
-  # Sync from main spooky2 pc to zwift-pc
-  rsync $rsync_args --exclude={/backup/,/old/} "$custom_databases/" "$custom_databases2"
-  # Sync from main spooky2 pc to laptop-pc
-  rsync $rsync_args --exclude={/backup/,/old/} "$custom_databases/" "$custom_databases3"
-  # Sync Custom.csv from main spooky2 pc to laptop-pc
-  rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder"/ "$folder2"
-  # Sync Custom.csv from main spooky2 pc to zwift-pc
-  rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder"/ "$folder3"
-  # Sync Custom.csv from zwift-pc to main spooky2 pc
-  rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder2"/ "$folder"
-  # Sync Custom.csv from laptop-pc to main spooky2 pc
-  rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder3"/ "$folder"
+  if [ $enable_sync == "yes" ] && [ $enable_sync2 == "yes" ]; then
+    # Sync from main spooky2 pc to zwift-pc
+    rsync $rsync_args --exclude={/backup/,/old/} "$custom_databases/" "$custom_databases2"
+  fi
+  if [ $enable_sync == "yes" ] && [ $enable_sync3 == "yes" ]; then
+    # Sync from main spooky2 pc to laptop-pc
+    rsync $rsync_args --exclude={/backup/,/old/} "$custom_databases/" "$custom_databases3"
+  fi
+  if [ $enable_sync == "yes" ] && [ $enable_sync2 == "yes" ]; then
+    # Sync Custom.csv from main spooky2 pc to zwift-pc
+    rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder"/ "$folder2"
+  fi
+  if [ $enable_sync == "yes" ] && [ $enable_sync3 == "yes" ]; then
+    # Sync Custom.csv from main spooky2 pc to laptop-pc
+    rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder"/ "$folder3"
+  fi
+  if [ $enable_sync2 == "yes" ] && [ $enable_sync == "yes" ]; then
+    # Sync Custom.csv from zwift-pc to main spooky2 pc
+    rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder2"/ "$folder"
+  fi
+  if [ $enable_sync3 == "yes" ] && [ $enable_sync == "yes" ]; then
+    # Sync Custom.csv from laptop-pc to main spooky2 pc
+    rsync $rsync_args --include "Custom.csv" --exclude "*" "$folder3"/ "$folder"
+  fi
 }
 
 sync() {
